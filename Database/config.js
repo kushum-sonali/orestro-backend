@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
 
-mongoose.connect("mongodb://0.0.0.0/models",{
+mongoose.connect("mongodb://0.0.0.0/login",{
 
     useNewUrlParser:true,
 
@@ -13,5 +13,6 @@ mongoose.connect("mongodb://0.0.0.0/models",{
     
     ).catch((e)=>{
         console.log(e);
+        
     }
     )

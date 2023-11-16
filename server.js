@@ -9,20 +9,13 @@ app.use(cors());//https block karta hai aur cors http block karta hai
 const bcrypt= require("bcrypt");
 const jwt=require("jsonwebtoken")
 const bp= require("body-parser");
+var nodemailer = require('nodemailer');
+const dotenv=require("dotenv");
+dotenv.config()
 const port= process.env.port||5000; // process.env.port ye ek environment variable hai jo heroku ke liye use hota hai oe local host ke liye 3000 use hota hai   ..after host environment variable is set then we can use it as process.env.port 
 app.get("/signup",async(req,res)=>{
      res.send("signup has benn succesfull"); 
 })
-// app.post("/signup",async(req,res)=>{
-// const userexist= await User.findOne({email:req.body.email});
-// if(userexist) return res.status(400).send("email already exist");
-// const data= new User(req.body);
-
-
-// const result= await data.save();
-// res.send(result);
-// console.log(result);
-// }
 app.post('/find',async(req,res,next)=>{
     try{ 
         const {input}=req.body;
@@ -49,12 +42,7 @@ app.post('/find',async(req,res,next)=>{
         console.log(err)
     }
 })
-// app.post("/insert",async(req,res,next)=>{
-//     const user=await User.insertOne(
-//         const {username}=req.body.username;
 
-//     )
-// })
 app.get("/test",(req,res,next)=>{
    try{
     const {name,email}=req.query;
@@ -101,11 +89,6 @@ try{
     console.log(result);
 
     res.status(200).json(result);
-    // res.send(hashpass);
-
-    // console.log(req.body);
-    // res.send(req.body);
-
 }
 catch(err){
     next(err);
@@ -124,11 +107,12 @@ app.post("/login",async(req,res,next)=>{
         
         if(!userfind){
          return res.status(404).send(" user not found")
+         
         }  
         
         const matchpass= await  bcrypt.compare(password,userfind.password) ;
         if(!matchpass){
-            return res.status(402).send("username or password not matched");
+            return res.status(401).send("username or password not matched");
         }
             // return res.send("login succesfully");
       const token =  jwt.sign({name:userfind.username,
@@ -142,8 +126,76 @@ app.post("/login",async(req,res,next)=>{
 next(err);
     }
 })
+app.post("/forgetpass",async(req,res,next)=>{
+    const {email}=req.body;
+  try{
+    const user= await User.findOne({email:email});
+if(!user){
+    return res.status(404).send("user not found");
+  }
+    const token=jwt.sign({id:user._id},"sonali"+user.password,
+    {expiresIn:60*60});
+   
+
+var transporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: {
+    user: process.env.EMAIL,
+    pass: process.env.PASSWORD
+  }
+});
+
+var mailOptions = {
+  to: email,
+  subject: 'Reset your password',
+  text: `http://localhost:5173/reset-password/${user._id}/${token}`
+};
+
+transporter.sendMail(mailOptions, function(error, info){
+  if (error) {
+    console.log(error);
+  } else {
+    console.log("Email sent: " + info.response);
+    return res.status(200).send("Email sent: " + info.response);
+  }
+});
+}
+    catch(err){
+        next(err);
+    }
+
+})
+app.post("/reset-password/:id/:token",async(req,res,next)=>{
+    try {
+        const {id,token}=req.params;
+        const user=await User.findOne({_id:id});
+        if(!user){
+            return res.status(404).send("user not found");
+        }
+        const payload= jwt.verify(token,"sonali"+user.password);
+        if(!payload){
+            return res.status(401).send("token not matched");
+        }
+        const {password}=req.body;
+        if(!password){
+            return res.status(400).send("password is required");
+        }
+        const saltRounds=10;
+        const hashpass= await bcrypt.hash(password, saltRounds);
+
+        user.password=hashpass;
+        await user.save();
+         res.status(200).send("password changed succesfully");
 
 
+             
+       
+}
+    catch(err){
+        next(err);
+    }
+}
+)
 app.listen(port,()=>{//two parameter port and callback function
     console.log(`server is running at ${port}`)
 })
