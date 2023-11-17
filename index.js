@@ -12,6 +12,7 @@ const bp= require("body-parser");
 var nodemailer = require('nodemailer');
 const dotenv=require("dotenv");
 dotenv.config()
+
 const port= process.env.port||5000; // process.env.port ye ek environment variable hai jo heroku ke liye use hota hai oe local host ke liye 3000 use hota hai   ..after host environment variable is set then we can use it as process.env.port 
 app.get("/signup",async(req,res)=>{
      res.send("signup has benn succesfull"); 
