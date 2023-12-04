@@ -11,7 +11,7 @@ const jwt=require("jsonwebtoken")
 const bp= require("body-parser");
 var nodemailer = require('nodemailer');
 const dotenv=require("dotenv");
-dotenv.config()
+dotenv.config();
 
 const port= process.env.port||5000; // process.env.port ye ek environment variable hai jo heroku ke liye use hota hai oe local host ke liye 3000 use hota hai   ..after host environment variable is set then we can use it as process.env.port 
 app.get("/signup",async(req,res)=>{
@@ -127,6 +127,42 @@ app.post("/login",async(req,res,next)=>{
 next(err);
     }
 })
+app.post('/message', async(req,res,next)=>{
+    try{
+        const {name,email,message}=req.body;
+        if(!name || !email || !message){
+            return res.status(400).send("require all field");
+        }
+        var transporter = nodemailer.createTransport({
+            service: 'gmail',
+            auth: {
+              user: process.env.EMAIL,
+              pass: process.env.PASSWORD
+            }
+          });
+          
+          var mailOptions = {
+            from: process.env.EMAIL,
+            to: process.env.EMAIL,
+            subject: `message from ${name}`,
+            text: `name:${name} email:${email}  message:${message}`
+          };
+          
+          transporter.sendMail(mailOptions, function(error, info){
+            if (error) {
+              console.log(error);
+              return res.status(400).send(error);
+            } else {
+              console.log('Email sent: ' + info.response);
+              return res.status(200).send("Email sent: " + info.response);
+            }
+          });
+    }
+    catch(err){
+        next(err);
+    }
+}
+)
 app.post("/forgetpass",async(req,res,next)=>{
     const {email}=req.body;
   try{
